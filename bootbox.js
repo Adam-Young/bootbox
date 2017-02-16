@@ -9,6 +9,7 @@
 (function (root, factory) {
 
   "use strict";
+
   if (typeof define === "function" && define.amd) {
     // AMD. Register as an anonymous module.
     define(["jquery"], factory);
@@ -24,6 +25,7 @@
     }
 
   } else {
+  
     // Browser globals (root is window)
     root.bootbox = factory(root.jQuery);
   }
@@ -88,11 +90,15 @@
     // show the dialog immediately by default
     show: true,
     // dialog container
-    container: "body"
+    container: "body",
+    // force callback on modal.hidden event instead
+    callbackOnHidden: false
   };
 
   // our public object; augmented after our private API
   var exports = {};
+  
+  var bootbox_options = {}; // scope issues, need access to options 
 
   /**
    * @private
@@ -103,6 +109,13 @@
   }
 
   function processCallback(e, dialog, callback) {
+    
+    // if running the callback on the model.hidden event return
+    if(bootbox_options.callbackOnHidden){
+      dialog.modal("hide");
+      return;
+    } 
+
     e.stopPropagation();
     e.preventDefault();
 
@@ -577,6 +590,8 @@
 
   exports.dialog = function(options) {
     options = sanitize(options);
+    
+    bootbox_options = options; // set for use outside dialog 
 
     var dialog = $(templates.dialog);
     var innerDialog = dialog.find(".modal-dialog");
@@ -661,6 +676,9 @@
       // by children of the current dialog. We shouldn't anymore now BS
       // namespaces its events; but still worth doing
       if (e.target === this) {
+        if( bootbox_options.callbackOnHidden && $.isFunction(bootbox_options.callback) ){
+           bootbox_options.callback.call(dialog, e)
+        } 
         dialog.remove();
       }
     });
@@ -768,7 +786,6 @@
     function BBDialog(elem) {
       this.elem = elem;
     }
-
     BBDialog.prototype = {
       hide: function() {
         return this.elem.modal("hide");
